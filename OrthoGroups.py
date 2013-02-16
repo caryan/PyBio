@@ -2,7 +2,7 @@
 Module for OrthoMCL manipulations.
 """
 
-import os, glob
+import os,glob
 from collections import Counter
 import subprocess
 
@@ -30,6 +30,12 @@ def faacleanup(filein,fileout):
 def find_orphans(fastaDir, mclOutput, orphanDir):
 	"""
 	Finds all genes that aren't in any orthogroups
+
+	Parameters
+	----------
+	fastaDir= all the clean fasta files (directory)
+	mcloutput= output from mcl (the file)
+	orphanDir= where the output goes (directory)
 	"""
 
 	#Load the set of all orthogroups genes as a set
@@ -55,6 +61,10 @@ def find_orphans(fastaDir, mclOutput, orphanDir):
 def find_common_groups(groupFile, fastaDir, groupDir, coverageCutoff=1):
 	"""
 	Find all orthogroups that have coverage above a coverage cutoff
+	groupFile= group output from orthoMCL
+	fataDir= CleanFasta files directory
+	groupDir= output directory -orthogroups in all genomes and pulls in sequence information asscoiated with prodigal id
+	coverageCutoff= scaling factor for number of genomes present in
 	"""
 
 	#Load the orthogroups
@@ -104,6 +114,9 @@ def find_common_groups(groupFile, fastaDir, groupDir, coverageCutoff=1):
 def align_group_genes(muscleBin, groupDir, alignedDir):
 	"""
 	Use Muscle to align genes from each group.
+	muscleBin= mucsle binary full path to '/users/kzdv345/local/bin/muscle3.8.31_i86linux64'
+	groupDir= directory made in the last step that contains all orthogroups shared by all genomes
+	alignedDir= directory I make to store my output in
 	"""
 	for fastaFile in os.listdir(groupDir):
 		groupName = fastaFile.split('.')[0]
@@ -113,6 +126,8 @@ def align_group_genes(muscleBin, groupDir, alignedDir):
 def trimAl(trimBin, alignedDir, trimmedDir):
 	"""
 	Use trimAl to clean-up aligned sequences from Muscle.
+	trimBin= trimAI binary full path to '/users/kzdv345/local/bin/trimal
+	trimmedDir=directory where my trimmed output comes
 	"""
 	for fastaFile in os.listdir(alignedDir):
 		groupName = fastaFile.split('.')[0]
@@ -143,4 +158,7 @@ def concat_seqs(trimmedDir, outputFile):
 			FID.write('>{0}\n'.format(strain))
 			FID.write(concatSeqs[strain])
 			FID.write('\n')
-	
+
+
+
+
