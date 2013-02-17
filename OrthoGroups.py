@@ -170,7 +170,7 @@ def concat_seqs(trimmedDir, outputFile):
 			FID.write(concatSeqs[strain])
 			FID.write('\n')
 
-def write_group_table(groupFile, outputFile):
+def write_group_table(groupFile, cleanFastaDir, outputFile):
 	"""
 	Write out the orthogroup information in tabular format amenable to filtering in Excel.
 
@@ -178,35 +178,62 @@ def write_group_table(groupFile, outputFile):
 
 	"""
 
-	#Dictionary of reference genomes keyed on taxon in group file and values of genome files.
-	refGenomeFiles = {'PAO1':'OriginalFastaFiles/PAO1PG.faa',
-	              'LES':'OriginalFastaFiles/LESB58PG.faa'}
+	# #Dictionary of reference genomes keyed on taxon in group file and values of genome files.
+	# refGenomeFiles = {'PAO1':'OriginalFastaFiles/PAO1PG.faa',
+	#               'LES':'OriginalFastaFiles/LESB58PG.faa'}
 
 
-	#Load the reference genomes as a dictionaries keyed off gene id
-	refGenomes = {}
-	for shortName, origFastaFile in refGenomeFiles.items():
-		with open(origFastaFile, 'r') as FID:
-			refGenomes[shortName] = SeqIO.to_dict(SeqIO.parse(FID, 'fasta'), key_function=lambda rec : rec.id.split('|')[0])
+	# #Load the reference genomes as a dictionaries keyed off gene id
+	# refGenomes = {}
+	# for shortName, origFastaFile in refGenomeFiles.items():
+	# 	with open(origFastaFile, 'r') as FID:
+	# 		refGenomes[shortName] = SeqIO.to_dict(SeqIO.parse(FID, 'fasta'), key_function=lambda rec : rec.id.split('|')[0])
 
 
-	#Pattern to remove extraneous info from description field
-	pat = re.compile('\[.*\]')
+	# #Pattern to remove extraneous info from description field
+	# pat = re.compile('\[.*\]')
+
+	# #Go through the orthogroup info
+	# outWriter = open(outputFile,'w')
+	# with open(groupFile, 'r') as inFID, open(outputFile,'w') as outFID:
+	# 	outWriter = csv.writer(outFID, delimiter='\t')
+	# 	for line in inFID:
+	# 		groupName, genes = line.split(':')
+	# 		genes = genes.split()
+	# 		for gene in genes:
+	# 			shortName, geneName = gene.split('|')
+	# 			#If it is the reference list then give extra descritpion info.
+	# 			if shortName in refGenomes.keys():
+	# 				#Clean up description info
+	# 				geneInfo = pat.sub('', refGenomes[shortName][geneName].description.replace(geneName+'|', ''))
+	# 			else:
+	# 				geneInfo = ''
+	# 			outWriter.writerow([groupName, geneName, geneInfo ])
+
+	#Use the clean fasta file directory to list all genomes
+	genomeNames = [x.split('.')[0] for x in os.listdir(cleanFastaDir)]
+	genes = {name:[] for name in genomeNames}
 
 	#Go through the orthogroup info
-	outWriter = open(outputFile,'w')
-	with open(groupFile, 'r') as inFID, open(outputFile,'w') as outFID:
-		outWriter = csv.writer(outFID, delimiter='\t')
-		for line in inFID:
-			groupName, genes = line.split(':')
-			genes = genes.split()
-			for gene in genes:
-				shortName, geneName = gene.split('|')
-				#If it is the reference list then give extra descritpion info.
-				if shortName in refGenomes.keys():
-					#Clean up description info
-					geneInfo = pat.sub('', refGenomes[shortName][geneName].description.replace(geneName+'|', ''))
+	groupNames = []
+	with open(groupFile,'r') as FID:
+		for line in FID:
+			groupName, groupGenes = line.split(':')
+			groupNames.append(groupName)
+			groupGenes = groupGenes.split()
+			groupGenes = {k:v for k,v in [g.split('|') for g in groupGenes]}
+			for name, geneGroups in genes.items():
+				if name in groupGenes:
+					geneGroups.append(groupGenes[name])
 				else:
-					geneInfo = ''
-				outWriter.writerow([groupName, geneName, geneInfo ])
+					geneGroups.append(None)
+
+	df = pd.DataFrame(genes, index=groupNames)
+
+	return df	
+
+
+
+
+
 
