@@ -5,6 +5,8 @@ Module for OrthoMCL manipulations.
 import os,glob
 from collections import Counter
 import subprocess
+import csv
+import re
 
 from Bio import SeqIO
 import pandas as pd
@@ -61,6 +63,9 @@ def find_orphans(fastaDir, mclOutput, orphanDir):
 def find_common_groups(groupFile, fastaDir, groupDir, coverageCutoff=1):
 	"""
 	Find all orthogroups that have coverage above a coverage cutoff
+
+	Parameters
+	----------
 	groupFile= group output from orthoMCL
 	fataDir= CleanFasta files directory
 	groupDir= output directory -orthogroups in all genomes and pulls in sequence information asscoiated with prodigal id
@@ -114,6 +119,9 @@ def find_common_groups(groupFile, fastaDir, groupDir, coverageCutoff=1):
 def align_group_genes(muscleBin, groupDir, alignedDir):
 	"""
 	Use Muscle to align genes from each group.
+
+	Parameters
+	----------
 	muscleBin= mucsle binary full path to '/users/kzdv345/local/bin/muscle3.8.31_i86linux64'
 	groupDir= directory made in the last step that contains all orthogroups shared by all genomes
 	alignedDir= directory I make to store my output in
@@ -128,6 +136,9 @@ def trimAl(trimBin, alignedDir, trimmedDir):
 	Use trimAl to clean-up aligned sequences from Muscle.
 	trimBin= trimAI binary full path to '/users/kzdv345/local/bin/trimal
 	trimmedDir=directory where my trimmed output comes
+
+	Parameters
+	-----------
 	"""
 	for fastaFile in os.listdir(alignedDir):
 		groupName = fastaFile.split('.')[0]
@@ -159,6 +170,43 @@ def concat_seqs(trimmedDir, outputFile):
 			FID.write(concatSeqs[strain])
 			FID.write('\n')
 
+def write_group_table(groupFile, outputFile):
+	"""
+	Write out the orthogroup information in tabular format amenable to filtering in Excel.
+
+	Basically we unfold the orthogroups and for reference genes we also print out info
+
+	"""
+
+	#Dictionary of reference genomes keyed on taxon in group file and values of genome files.
+	refGenomeFiles = {'PAO1':'OriginalFastaFiles/PAO1PG.faa',
+	              'LES':'OriginalFastaFiles/LESB58PG.faa'}
 
 
+	#Load the reference genomes as a dictionaries keyed off gene id
+	refGenomes = {}
+	for shortName, origFastaFile in refGenomeFiles.items():
+		with open(origFastaFile, 'r') as FID:
+			refGenomes[shortName] = SeqIO.to_dict(SeqIO.parse(FID, 'fasta'), key_function=lambda rec : rec.id.split('|')[0])
+
+
+	#Pattern to remove extraneous info from description field
+	pat = re.compile('\[.*\]')
+
+	#Go through the orthogroup info
+	outWriter = open(outputFile,'w')
+	with open(groupFile, 'r') as inFID, open(outputFile,'w') as outFID:
+		outWriter = csv.writer(outFID, delimiter='\t')
+		for line in inFID:
+			groupName, genes = line.split(':')
+			genes = genes.split()
+			for gene in genes:
+				shortName, geneName = gene.split('|')
+				#If it is the reference list then give extra descritpion info.
+				if shortName in refGenomes.keys():
+					#Clean up description info
+					geneInfo = pat.sub('', refGenomes[shortName][geneName].description.replace(geneName+'|', ''))
+				else:
+					geneInfo = ''
+				outWriter.writerow([groupName, geneName, geneInfo ])
 
