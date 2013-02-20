@@ -234,6 +234,43 @@ def write_group_table(groupFile, cleanFastaDir, outputFile):
 
 	return df	
 
+def create_orthoSets(df):
+	"""
+	Create a dictionary of sets of orthogroups keyed off strains.
+
+	Parameters
+	-----------
+	df : DataFrame of orthogroup membership
+	"""
+	orthoSets = {}
+	for strain in df.columns:
+		orthoSets[strain] = set(df[strain][pd.notnull(df[strain])].index)
+
+	return orthoSets
+
+def filter_orthoSets(filterList, orthoSets):
+	"""
+	Filter the orthogroups to find the exclusive members of a list of strains. 
+
+	Parameters
+	----------
+	filterList : iterable of strains to filter for exclusive membership in orthogroups
+	orthoSets : dictionary of sets of orthogroups for each strain
+	"""
+	#Take the union of the sets in the filterList
+	inGroup = set([])
+	outGroup = set([])
+
+	for strain,strainSet in orthoSets.items():
+		if strain in filterList:
+			if inGroup:
+				inGroup &= strainSet
+			else:
+				inGroup = strainSet
+		else:
+			outGroup |= strainSet
+
+	return inGroup - outGroup
 
 
 
