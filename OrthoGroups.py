@@ -170,7 +170,7 @@ def concat_seqs(trimmedDir, outputFile):
 			FID.write(concatSeqs[strain])
 			FID.write('\n')
 
-def write_group_table(groupFile, cleanFastaDir, outputFile):
+def write_group_table(groupFile, cleanFastaDir, outputFile=None):
 	"""
 	Write out the orthogroup information in tabular format amenable to filtering in Excel.
 
