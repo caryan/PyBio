@@ -161,8 +161,12 @@ def concat_seqs(trimmedDir, outputFile):
 	for fileName in alignedFiles:
 		with open(fileName,'r') as FID:
 			seqs = SeqIO.to_dict(SeqIO.parse(FID, 'fasta'))
-			for strainName, record in seqs.items():
-				concatSeqs[strainName.split('|')[0]] += record.seq.tostring()
+			trimLength = len(seqs.values()[0].seq)
+			for strainName in strainNames:
+				if strainName in seqs:
+					concatSeqs[strainName.split('|')[0]] += record.seq.tostring()
+				else:
+					concatSeqs[strainName.split('|')[0]] += '-'*trimLength
 
 	with open(outputFile, 'w') as FID:
 		for strain in strainNames:
