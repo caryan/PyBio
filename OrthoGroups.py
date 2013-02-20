@@ -230,7 +230,8 @@ def write_group_table(groupFile, cleanFastaDir, outputFile):
 
 	df = pd.DataFrame(genes, index=groupNames)
 
-	df.to_csv(outputFile, sep='\t')
+	if outputFile:
+		df.to_csv(outputFile, sep='\t')
 
 	return df	
 
