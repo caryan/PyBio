@@ -277,6 +277,47 @@ def filter_orthoSets(filterList, orthoSets):
 
 	return inGroup - outGroup
 
+def trim_seqs(alignedDir, trimmedDir):
+	"""
+	A simple trimming program.  The claim is that with modern sequencing trimming in the middle of the 
+	sequence is not as important and we should simply trim the beginning and ends.
+
+	Parameters
+	----------
+	alignedDir : directory of input aligned fasta files
+	trimmedDir : directory of output trimmed fasta files
+	"""
+	#Some regular expressions for matching '-'s at the beginning and end of strings
+	frontPat = re.compile('^-*')
+	endPat = re.compile('-*$')
+
+	for fastaFile in os.listdir(alignedDir):
+		groupName = fastaFile.split('.')[0]
+		#Load all the sequences
+		with open(os.path.join(alignedDir, fastaFile),'r') as FID:
+			seqs = list(SeqIO.parse(FID, 'fasta'))
+			#Now look for the most "-"s at the beginning or end of the file
+			frontTrim = 0
+			endTrim = 0
+			for seq in seqs:
+				frontTrim = max(frontTrim, re.search(frontPat, seq.seq.tostring()).end())
+				endTrim = max(endTrim, len(seq.seq) - re.search(endPat, seq.seq.tostring()).start())
+
+			#Re-loop and trim
+			for seq in seqs:
+				if frontTrim:
+					seq.seq = seq.seq[frontTrim:]
+				if endTrim:
+					seq.seq = seq.seq[:-endTrim]
+
+		#Write out to file
+		with open(os.path.join(trimmedDir, fastaFile), 'w') as FID:
+			SeqIO.write(seqs, FID, 'fasta')
+
+
+
+
+
 
 
 
