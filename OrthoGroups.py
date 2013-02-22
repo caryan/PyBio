@@ -76,31 +76,31 @@ def find_common_groups(groupFile, fastaDir, groupDir, coverageCutoff=1):
 	with open(groupFile, 'r') as FID:
 		groupNames = []
 		groupGenes = []
-		groupTaxons = []
-		allTaxons = set([])
+		groupStrains = []
+		allStrains = set([])
 		for line in FID:
 			groupName, genes = line.split(':')
 			genes = genes.split()
-			taxons = [x.split('|')[0] for x in genes]
-			taxonCounts = Counter(taxons)
-			allTaxons = allTaxons.union(taxons)
+			strains = [x.split('|')[0] for x in genes]
+			strainCounts = Counter(strains)
+			allStrains = allStrains.union(strains)
 
 			#If we have any paralogs i.e. two genes from same taxon then skip
-			if max(taxonCounts.values()) > 1:
+			if max(strainCounts.values()) > 1:
 				continue
 			else:
 				groupNames.append(groupName)
 				groupGenes.append(genes)
-				groupTaxons.append(taxons)
+				groupStrains.append(strains)
 
 	#Create the data frame
-	orthoDF = pd.DataFrame({'genes':groupGenes, 'taxons':groupTaxons}, index=groupNames)
+	orthoDF = pd.DataFrame({'genes':groupGenes, 'strains':groupStrains}, index=groupNames)
 
 	#Calculate the coverage
-	orthoDF['coverage'] = orthoDF['taxons'].apply(len)
+	orthoDF['coverage'] = orthoDF['strains'].apply(len)
 
 	#Filter for those above coverage cutoff
-	orthoDF = orthoDF[orthoDF['coverage'] >= coverageCutoff*len(allTaxons)]
+	orthoDF = orthoDF[orthoDF['coverage'] >= coverageCutoff*len(allStrains)]
 
 	#Load all the genes from the fasta files 
 	allGenes = {}
@@ -151,7 +151,7 @@ def concat_seqs(trimmedDir, outputFile):
 	"""
 	alignedFiles = glob.glob(trimmedDir+'/*.afa')
 
-	#Use the first one to get the list of taxons
+	#Use the first one to get the list of strains
 	strainNames = [x.split('|')[0] for x in SeqIO.to_dict(SeqIO.parse(open(alignedFiles[0], 'r'), 'fasta')).keys()]
 
 	#Create a dictionary of empty strings to contain the concatenated sequences
