@@ -161,12 +161,8 @@ def concat_seqs(trimmedDir, outputFile):
 	for fileName in alignedFiles:
 		with open(fileName,'r') as FID:
 			seqs = SeqIO.to_dict(SeqIO.parse(FID, 'fasta'))
-			trimLength = len(seqs.values()[0].seq)
-			for strainName in strainNames:
-				if strainName in seqs:
-					concatSeqs[strainName.split('|')[0]] += record.seq.tostring()
-				else:
-					concatSeqs[strainName.split('|')[0]] += '-'*trimLength
+			for strainName, record in seqs.items():
+				concatSeqs[strainName.split('|')[0]] += record.seq.tostring()
 
 	with open(outputFile, 'w') as FID:
 		for strain in strainNames:
@@ -174,7 +170,7 @@ def concat_seqs(trimmedDir, outputFile):
 			FID.write(concatSeqs[strain])
 			FID.write('\n')
 
-def write_group_table(groupFile, cleanFastaDir, outputFile=None):
+def write_group_table(groupFile, cleanFastaDir, outputFile):
 	"""
 	Write out the orthogroup information in tabular format amenable to filtering in Excel.
 
@@ -234,48 +230,10 @@ def write_group_table(groupFile, cleanFastaDir, outputFile=None):
 
 	df = pd.DataFrame(genes, index=groupNames)
 
-	if outputFile:
-		df.to_csv(outputFile, sep='\t')
+	df.to_csv(outputFile, sep='\t')
 
 	return df	
 
-def create_orthoSets(df):
-	"""
-	Create a dictionary of sets of orthogroups keyed off strains.
-
-	Parameters
-	-----------
-	df : DataFrame of orthogroup membership
-	"""
-	orthoSets = {}
-	for strain in df.columns:
-		orthoSets[strain] = set(df[strain][pd.notnull(df[strain])].index)
-
-	return orthoSets
-
-def filter_orthoSets(filterList, orthoSets):
-	"""
-	Filter the orthogroups to find the exclusive members of a list of strains. 
-
-	Parameters
-	----------
-	filterList : iterable of strains to filter for exclusive membership in orthogroups
-	orthoSets : dictionary of sets of orthogroups for each strain
-	"""
-	#Take the union of the sets in the filterList
-	inGroup = set([])
-	outGroup = set([])
-
-	for strain,strainSet in orthoSets.items():
-		if strain in filterList:
-			if inGroup:
-				inGroup &= strainSet
-			else:
-				inGroup = strainSet
-		else:
-			outGroup |= strainSet
-
-	return inGroup - outGroup
 
 def trim_seqs(alignedDir, trimmedDir):
 	"""
