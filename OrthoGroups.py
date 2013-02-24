@@ -11,6 +11,26 @@ import re
 from Bio import SeqIO
 import pandas as pd
 
+
+def pug_fixer(filein,fileout):
+	"""
+	changes the nucleotide file (fnr) file from pubmed to have locus tags at the start of the name of each gene
+	"""
+	#read in records from original files
+	with open(filein,'r') as FID:
+		allRecords=list(SeqIO.parse(FID,'fasta'))
+	pat = re.compile('locus_tag=(\w+)')
+	for rec in allRecords:
+		geneName = re.findall(pat, rec.description)[0]
+		rec.id = geneName
+		rec.name = ''
+		rec.description = ''
+
+	#put out modified records to new file
+	with open(fileout,'w') as FID:
+		SeqIO.write(allRecords,FID,'fasta')
+
+
 def faacleanup(filein,fileout):
 	"""
 	change the output of a prodigal faa file to simiplified locus identifiers
