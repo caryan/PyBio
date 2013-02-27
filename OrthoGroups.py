@@ -105,7 +105,7 @@ def find_common_groups(groupFile, fastaDir, groupDir, coverageCutoff=1):
 			strainCounts = Counter(strains)
 			allStrains = allStrains.union(strains)
 
-			#If we have any paralogs i.e. two genes from same taxon then skip
+			#If we have any paralogs i.e. two genes from same strain then skip
 			if max(strainCounts.values()) > 1:
 				continue
 			else:
@@ -239,8 +239,14 @@ def write_group_table(groupFile, cleanFastaDir, outputFile):
 	with open(groupFile,'r') as FID:
 		for line in FID:
 			groupName, groupGenes = line.split(':')
-			groupNames.append(groupName)
 			groupGenes = groupGenes.split()
+			strains = [x.split('|')[0] for x in groupGenes]
+			strainCounts = Counter(strains)
+			#If we have any paralogs i.e. two genes from same strain then skip
+			if max(strainCounts.values()) > 1:
+				continue
+
+			groupNames.append(groupName)
 			groupGenes = {k:v for k,v in [g.split('|') for g in groupGenes]}
 			for name, geneGroups in genes.items():
 				if name in groupGenes:
