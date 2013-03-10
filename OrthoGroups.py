@@ -79,6 +79,30 @@ def find_orphans(fastaDir, mclOutput, orphanDir):
 		with open(os.path.join(orphanDir, fastaFile), 'w') as FID:
 			SeqIO.write(orphanGenes, FID, 'fasta')
 
+def pull_seqs(fastaDir, genes):
+	"""
+	Pull gene info out of fasta files given a list of gene names.
+
+	Parameters
+	------------
+	fastaDir : directory of fasta files
+	genes : iterable of gene names
+
+	Output
+	--------------
+	list of Biopython sequence records
+
+	"""
+	
+	#Load all the genes from the all fasta files 
+	#TODO: only load the necessary files
+	allGenes = {}
+	for fastaFile in os.listdir(fastaDir):
+		with open(os.path.join(fastaDir, fastaFile), 'r') as FID:
+			allGenes.update(SeqIO.to_dict(SeqIO.parse(FID, 'fasta')))
+	
+	#Return the relevant records
+	return [allGenes[gene] for gene in genes]
 
 def find_common_groups(groupFile, fastaDir, groupDir, coverageCutoff=1):
 	"""
@@ -87,7 +111,7 @@ def find_common_groups(groupFile, fastaDir, groupDir, coverageCutoff=1):
 	Parameters
 	----------
 	groupFile= group output from orthoMCL
-	fataDir= CleanFasta files directory
+	fastaDir= CleanFasta files directory
 	groupDir= output directory -orthogroups in all genomes and pulls in sequence information asscoiated with prodigal id
 	coverageCutoff= scaling factor for number of genomes present in
 	"""
@@ -127,7 +151,7 @@ def find_common_groups(groupFile, fastaDir, groupDir, coverageCutoff=1):
 	for fastaFile in os.listdir(fastaDir):
 		with open(os.path.join(fastaDir, fastaFile), 'r') as FID:
 			allGenes.update(SeqIO.to_dict(SeqIO.parse(FID, 'fasta')))
-		
+              
 	#Now loop through all the orthogroups and write files
 	for groupName, groupGenes in orthoDF['genes'].iteritems():
 		with open(os.path.join(groupDir, groupName+'.fasta'), 'w') as FID:
@@ -190,7 +214,7 @@ def concat_seqs(trimmedDir, outputFile):
 			FID.write(concatSeqs[strain])
 			FID.write('\n')
 
-def write_group_table(groupFile, cleanFastaDir, outputFile):
+def write_group_table(groupFile, cleanFastaDir, outputFile=None):
 	"""
 	Write out the orthogroup information in tabular format amenable to filtering in Excel.
 
@@ -255,8 +279,9 @@ def write_group_table(groupFile, cleanFastaDir, outputFile):
 					geneGroups.append(None)
 
 	df = pd.DataFrame(genes, index=groupNames)
-
-	df.to_csv(outputFile, sep='\t')
+	
+	if outputFile:
+		df.to_csv(outputFile, sep='\t')
 
 	return df	
 
