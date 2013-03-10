@@ -7,6 +7,7 @@ from collections import Counter
 import subprocess
 import csv
 import re
+import difflib
 
 from Bio import SeqIO
 import pandas as pd
@@ -361,6 +362,47 @@ def filter_orthoSets(filterList, orthoSets):
 
 	return inGroup - outGroup
 
+def find_aa_changes(inputDir, refStrain, outputDir):
+	"""
+	Enumerate all the amino acid changes in an orthogroup vs a reference gene.
+
+
+	Parameters
+	-------------
+	inputDir : directory containing aligned orthogroup files
+	refStrain : the reference strain to find differences with
+	outputDir : directory to put output files in  
+	"""
+
+	#Iterate over each aligned fasta file in the directory
+	for fastaFile in os.listdir(inputDir):
+		groupName = fastaFile.split('.')[0]
+		#Load all the sequences
+		with open(os.path.join(inputDir, fastaFile),'r') as FID:
+			seqs = SeqIO.to_dict(SeqIO.parse(FID, 'fasta'))
+
+		#Find the reference strain gene
+		refStrainGene = filter(lambda name : name.startswith(refStrain), seqs.keys())
+		#If reference is theres
+		if refStrainGene:
+			refGeneSeq = seqs[refStrainGene[0]].seq.tostring()
+			#Open the output file
+			with open(os.path.join(outputDir, groupName+'_Changes.tsv'), 'w') as FID:
+				#Write a header
+				FID.write('\t'.join(['Gene', 'Change Mode', 'Start Idx.', 'Stop Idx.', 'Ref String', 'Replacement String']))
+				FID.write('\n')
+				#Iterate over strains
+				for strainName, seq in seqs.items():
+					if strainName != refStrainGene[0]:
+						matcher = difflib.SequenceMatcher(None,  refGeneSeq, seq.seq.tostring())
+
+						#Look only at replacements
+						for changeSet in matcher.get_opcodes():
+							if changeSet[0] == 'replace':
+								startIdx = changeSet[1]
+								stopIdx = changeSet[2]
+								FID.write('\t'.join([strainName, changeSet[0], str(startIdx), str(stopIdx), refGeneSeq[startIdx:stopIdx], seq.seq.tostring()[startIdx:stopIdx] ]))
+								FID.write('\n')
 
 
 
