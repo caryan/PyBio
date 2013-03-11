@@ -389,20 +389,27 @@ def find_aa_changes(inputDir, refStrain, outputDir):
 			#Open the output file
 			with open(os.path.join(outputDir, groupName+'_Changes.tsv'), 'w') as FID:
 				#Write a header
-				FID.write('\t'.join(['Gene', 'Change Mode', 'Start Idx.', 'Stop Idx.', 'Ref String', 'Replacement String']))
+				FID.write('\t'.join(['Gene', 'Start Idx.', 'Stop Idx.', 'Ref String', 'Replacement String']))
 				FID.write('\n')
 				#Iterate over strains
 				for strainName, seq in seqs.items():
 					if strainName != refStrainGene[0]:
-						matcher = difflib.SequenceMatcher(None,  refGeneSeq, seq.seq.tostring())
+						startdIdx = 0
+						curIdx = 0
+						compSeq = seq.seq.tostring()
 
-						#Look only at replacements
-						for changeSet in matcher.get_opcodes():
-							if changeSet[0] == 'replace':
-								startIdx = changeSet[1]
-								stopIdx = changeSet[2]
-								FID.write('\t'.join([strainName, changeSet[0], str(startIdx), str(stopIdx), refGeneSeq[startIdx:stopIdx], seq.seq.tostring()[startIdx:stopIdx] ]))
+						while curIdx < len(refGeneSeq):
+							if refGeneSeq[curIdx] != compSeq[curIdx]:
+								startIdx = curIdx
+								curIdx += 1
+								while curIdx < len(refGeneSeq):
+									if refGeneSeq[curIdx] == compSeq[curIdx]:
+										break
+									curIdx += 1 
+								FID.write('\t'.join([ strainName, str(startIdx), str(curIdx-1), refGeneSeq[startIdx:curIdx], compSeq[startIdx:curIdx] ]))
 								FID.write('\n')
+							curIdx += 1
+
 
 
 
