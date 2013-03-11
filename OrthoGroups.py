@@ -406,7 +406,7 @@ def find_aa_changes(inputDir, refStrain, outputDir):
 									if refGeneSeq[curIdx] == compSeq[curIdx]:
 										break
 									curIdx += 1 
-								FID.write('\t'.join([ strainName, str(startIdx), str(curIdx-1), refGeneSeq[startIdx:curIdx], compSeq[startIdx:curIdx] ]))
+								FID.write('\t'.join([ strainName, str(startIdx+1), str(curIdx), refGeneSeq[startIdx:curIdx], compSeq[startIdx:curIdx] ]))
 								FID.write('\n')
 							curIdx += 1
 
