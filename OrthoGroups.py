@@ -410,6 +410,53 @@ def find_aa_changes(inputDir, refStrain, outputDir):
 								FID.write('\n')
 							curIdx += 1
 
+def consolidate_aa_change_info(inputDir, drugInfoFile, drug, outputDir, totNumStrains):
+	"""
+	Consoldiate the ammino acid change information by grouping each change and listing involved strains and MIC info.
+
+	Parameters
+	------------
+	inputDir : directory containing tsv files from find_aa_changes
+	drugInfoFile : csv file containing MIC info for each strain and drug
+	drug : which drug to print MIC info for
+	outputDir : where to put the files
+	totNumStrains : total number of strains for relative %'s
+	"""
+
+	#Load the drug info
+	drugInfoDF = pd.read_csv(drugInfoFile, index_col='strain')
+	
+	#Loop over input files
+	for inputFile in os.listdir(inputDir):
+		aaChangeDF = pd.read_csv(os.path.join(inputDir, inputFile), sep='\t')
+
+		#Group by the changes
+		grouped = aaChangeDF.groupby(['Start Idx.', 'Ref String', 'Replacement String'])
+
+		#Write the results out to file
+		geneName = inputFile.split('_')[0]
+		with open(os.path.join(outputDir,geneName), 'w') as FID:
+			for change, strainNums in grouped.groups.items():
+				FID.write(' '.join([str(x) for x in change]))
+				FID.write(': {0:.1%} of strains\n'.format(float(len(strainNums))/totNumStrains))
+				for strainNum in strainNums:
+					strain = aaChangeDF['Gene'][strainNum].split('|')[0]
+					try:
+						MIC = drugInfoDF[drug][strain]
+						country = drugInfoDF['country'][strain]
+					except KeyError:
+						MIC = 'no drug info.'
+						country = ''
+					FID.write('\t{0} {1} ; {2}\n'.format(strain, MIC, country))
+
+
+
+
+
+
+
+
+
 
 
 
