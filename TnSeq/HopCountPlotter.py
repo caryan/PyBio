@@ -1,3 +1,6 @@
+# Copyright 2013 Colm Ryan colm@colmryan.org
+# License GPL v3 (http://www.gnu.org/licenses/gpl.txt) 
+
 from __future__ import division
  
 #Let's write to SVG style graphics

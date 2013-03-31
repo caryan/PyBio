@@ -1,3 +1,6 @@
+# Copyright 2013 Colm Ryan colm@colmryan.org
+# License GPL v3 (http://www.gnu.org/licenses/gpl.txt) 
+
 '''
 Created on Jul 5, 2011
 

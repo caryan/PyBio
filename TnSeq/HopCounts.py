@@ -1,3 +1,6 @@
+# Copyright 2013 Colm Ryan colm@colmryan.org
+# License GPL v3 (http://www.gnu.org/licenses/gpl.txt) 
+
 '''
 Script to go from fasta files to hopcounts and aggregate hop counts for TnSeq experiments.
 
