@@ -12,7 +12,7 @@ import csv
 import re
 import difflib
 
-from Bio import SeqIO
+from Bio import SeqIO, Phylo
 import pandas as pd
 
 
@@ -451,6 +451,42 @@ def consolidate_aa_change_info(inputDir, drugInfoFile, drug, outputDir, totNumSt
 						MIC = 'no drug info.'
 						country = ''
 					FID.write('\t{0} {1} ; {2}\n'.format(strain, MIC, country))
+
+
+def consolidate_tree_info(treeFile, alignedFile, reference):
+	"""
+	Consolidate the tree groups and report aminio acid changes.
+	"""
+
+	#Load the tree info
+	with open(treeFile,'r') as FID:
+		tree = Phylo.read(FID, 'newick')
+
+	#Groups are adjacent entries in get_terminals with branch_length=0.0
+	terminals = tree.get_terminals()
+	groups = [set([terminals[0].name])]
+	testClade = terminals[0]
+	refClade = terminals[[clade.name.split('|')[0] for clade in terminals].index(reference)]
+	refDist = [tree.distance(refClade, testClade)]
+	for clade in terminals[1:]:
+		if tree.distance(testClade, clade) == 0:
+			groups[-1].add(clade.name)
+		else:
+			groups.append(set([clade.name]))
+			testClade = clade
+			refDist.append(tree.distance(refClade, testClade))
+
+	return list(zip(groups, refDist))
+
+
+
+
+
+
+
+
+
+
 
 
 
