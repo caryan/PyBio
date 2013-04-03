@@ -483,7 +483,7 @@ def consolidate_tree_info(treeFile, alignedFile, refStrain):
 	df = pd.DataFrame({'RefDist':pd.Series(refDist), 'Group':pd.Series(groups)})
 
 	#Sort the list according to the distance from the refStrain
-	df = df.sort_index(by=['RefDist'])
+	df.sort(columns='RefDist', inplace=True)
 
 	#Assign a distance rank
 	#Get the uniques in order first
