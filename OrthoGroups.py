@@ -11,9 +11,12 @@ import subprocess
 import csv
 import re
 import difflib
+from operator import itemgetter
 
 from Bio import SeqIO, Phylo
 import pandas as pd
+import numpy as np
+
 
 
 def pug_fixer(filein,fileout):
@@ -453,7 +456,7 @@ def consolidate_aa_change_info(inputDir, drugInfoFile, drug, outputDir, totNumSt
 					FID.write('\t{0} {1} ; {2}\n'.format(strain, MIC, country))
 
 
-def consolidate_tree_info(treeFile, alignedFile, reference):
+def consolidate_tree_info(treeFile, alignedFile, refStrain):
 	"""
 	Consolidate the tree groups and report aminio acid changes.
 	"""
@@ -464,20 +467,71 @@ def consolidate_tree_info(treeFile, alignedFile, reference):
 
 	#Groups are adjacent entries in get_terminals with branch_length=0.0
 	terminals = tree.get_terminals()
-	groups = [set([terminals[0].name])]
 	testClade = terminals[0]
-	refClade = terminals[[clade.name.split('|')[0] for clade in terminals].index(reference)]
-	refDist = [tree.distance(refClade, testClade)]
+	refClade = terminals[[clade.name.split('|')[0] for clade in terminals].index(refStrain)]
+	refDist = {}
+	groups = {}
+	ct = 0
 	for clade in terminals[1:]:
-		if tree.distance(testClade, clade) == 0:
-			groups[-1].add(clade.name)
-		else:
-			groups.append(set([clade.name]))
+		if tree.distance(testClade, clade) != 0:
 			testClade = clade
-			refDist.append(tree.distance(refClade, testClade))
+			ct += 1
+		groups[clade.name] = ct
+		refDist[clade.name] = tree.distance(refClade, clade)
 
-	return list(zip(groups, refDist))
+	#Create a data frame for the results indexed by strain
+	df = pd.DataFrame({'RefDist':pd.Series(refDist), 'Group':pd.Series(groups)})
 
+	#Sort the list according to the distance from the refStrain
+	df = df.sort_index(by=['RefDist'])
+
+	#Assign a distance rank
+	#Get the uniques in order first
+	dist = np.zeros(len(df), dtype=np.int)
+	groupValues = df['Group'].values
+	dist[0] = 0
+	for ct in range(1,len(df)):
+		if df['Group'][ct] == df['Group'][ct-1]:
+			dist[ct] = dist[ct-1]
+		else:
+			dist[ct] = dist[ct-1]+1
+	df['DistRank'] = dist
+
+	del df['Group']
+
+	#Now something similar to find_aa_changes
+	with open(alignedFile,'r') as FID:
+		seqs = SeqIO.to_dict(SeqIO.parse(FID, 'fasta'))
+
+		#Find the refStrain strain gene
+		refStrainGene = filter(lambda name : name.startswith(refStrain), seqs.keys())
+		refGeneSeq = seqs[refStrainGene[0]].seq.tostring()
+
+		changeDict = {refStrainGene[0]:''}
+
+		#Iterate over strains
+		for strainName, seq in seqs.items():
+			if strainName != refStrainGene[0]:
+				startdIdx = 0
+				curIdx = 0
+				changeList = []
+				compSeq = seq.seq.tostring()
+
+				while curIdx < len(refGeneSeq):
+					if refGeneSeq[curIdx] != compSeq[curIdx]:
+						startIdx = curIdx
+						curIdx += 1
+						while (curIdx < len(refGeneSeq)) and (refGeneSeq[curIdx] != compSeq[curIdx]):
+							curIdx += 1
+						changeList.append(''.join([str(startIdx+1), ' ', refGeneSeq[startIdx:curIdx], '->', compSeq[startIdx:curIdx] ]))	
+					curIdx += 1
+				changeDict[strainName] = '; '.join(changeList)
+
+
+	df['Changes'] = pd.Series(changeDict)
+
+
+	return df
 
 
 
