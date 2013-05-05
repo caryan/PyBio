@@ -536,6 +536,13 @@ def consolidate_tree_info(treeFile, alignedFile, refStrain):
 
 
 
+def multi_consolidate_tree_info (OGList):
+	for group in OGList:
+		treeFile = group+'.afa.tree'
+		alignedFile = group+'.afa'
+		refStrain ='PAO1'
+		df = consolidate_tree_info (treeFile, alignedFile, refStrain)
+		df.to_csv (group+'.out')
 
 
 
