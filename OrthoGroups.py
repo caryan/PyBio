@@ -544,6 +544,16 @@ def multi_consolidate_tree_info (OGList):
 		df = consolidate_tree_info (treeFile, alignedFile, refStrain)
 		df.to_csv (group+'.out')
 
+def og_resistome (OGList):
+	myDict = {}
+	for group in OGList:
+		outFile = group +'.out'
+		df = pd.read_csv(outFile)
+		df['StrainName'] = [x.split('|')[0] for x in df['Unnamed: 0'].values]
+		df = df.set_index('StrainName')
+		myDict[group] = df['DistRank']
+	return pd.DataFrame(myDict)
+
 
 
 
