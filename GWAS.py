@@ -65,12 +65,21 @@ for k, v in grouped:
 		SNPPos.append(k[0])
 		pValues.append(calc_pValue(v))
 
+
+
 #Make the Manhattan plot
-plt.plot(SNPPos, -np.log10(pValues), '*')
+def onpick(event):
+	print(SNPNames[event.ind[0]])
+
+figH = plt.figure()
+axesH = figH.add_subplot(111)
+axesH.scatter(SNPPos, -np.log10(pValues), picker=True)
 
 #Plot the 0.05 significance line
 #TODO: apply multiple testing critera
-plt.axhline(-np.log10(0.05), linestyle='--', color='k')
+axesH.axhline(-np.log10(0.05), linestyle='--', color='k')
+
+figH.canvas.mpl_connect('pick_event', onpick)
 
 plt.show()
 
