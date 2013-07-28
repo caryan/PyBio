@@ -18,6 +18,18 @@ import pandas as pd
 import numpy as np
 
 
+def og_mess_fixer(filein, fastadir, fileout):
+	"""
+	For convoluting orthogroups that we are interested in looking at that have more than 1 representative from a genome
+	"""
+	#read in records from original files
+	with open(filein,'r') as FID:
+		textPaste=FID.read()
+	genes= textPaste.split(' ')
+	genes[-1]=genes[-1][:-1]
+	seqRecords=pull_seqs(fastadir,genes)
+	with open(fileout,'w') as FID:
+		SeqIO.write(seqRecords,FID,'fasta')
 
 def pug_fixer(filein,fileout):
 	"""
@@ -47,8 +59,8 @@ def faacleanup(filein,fileout):
 		allRecords = list(SeqIO.parse(FID,'fasta'))
 	print('{0} records found'.format(len(allRecords)))
 	#replace id with ARCXXXX_OOO1 etc.
-	for index, item in enumerate(allRecords):
-        	newName = '{1}_{0:04d}'.format(index+1, item.id[0:7])
+	for item in allRecords:
+        	newName = item.id.replace('_contig','')
 		item.id=newName
 		item.name=''
 		item.description=''
@@ -536,7 +548,10 @@ def consolidate_tree_info(treeFile, alignedFile, refStrain):
 
 
 
-def multi_consolidate_tree_info (OGList):
+def multi_consolidate_tree_info(OGList):
+	"""
+	Wraps multiple calls to consolidate_tree_info for a list of orthogroups.
+	"""
 	for group in OGList:
 		treeFile = group+'.afa.tree'
 		alignedFile = group+'.afa'
@@ -553,6 +568,7 @@ def og_resistome (OGList):
 		df = df.set_index('StrainName')
 		myDict[group] = df['DistRank']
 	return pd.DataFrame(myDict)
+	
 
 
 
