@@ -179,6 +179,28 @@ def find_common_groups(groupFile, fastaDir, groupDir, coverageCutoff=1):
 
 	return orthoDF
 
+def count_orthogroups(groupFile):
+	"""
+	Count the strain count of each orthogroup and write the resulting matrix to file.
+	"""
+	with open(groupFile, 'r') as FID:
+		#Initialize a dictionary of strain counts keyed of orthogroup name
+		strainCounts = {}
+		#Each line contains OGNAME: strain1|strain1_x, strain1|strain1_y, strain2|strain2_x, ...
+		for line in FID:
+			groupName, genes = line.split(':')
+			theseStrainCounts = Counter([x.split('|')[0] for x in genes.split()])
+			strainCounts[groupName] = pd.Series(theseStrainCounts)
+
+		#Create a data frame off everything ends up with strains as index and orthogroups as columns
+		df = pd.DataFrame(strainCounts)
+
+		#Fill missing entries with 0 count
+		df.fillna(0, inplace=True)
+
+		#Output to file
+		df.to_csv('SuperBigMatrix.tsv', sep='\t')
+
 def align_group_genes(muscleBin, groupDir, alignedDir):
 	"""
 	Use Muscle to align genes from each group.
