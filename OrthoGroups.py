@@ -582,6 +582,12 @@ def multi_consolidate_tree_info(OGList):
 		df.to_csv (group+'.out')
 
 def og_resistome (OGList):
+	"""
+	Take in list of orthogroup names.  Parse each .out file from consolidate_tree_info and return
+	a pandas dataframe with particular (e.g. DistRank) info for each orthogroup.
+
+	DataFrame can be dumped to tab-delimited file with df.to_csv(fileName, sep='\t')
+	"""
 	myDict = {}
 	for group in OGList:
 		outFile = group +'.out'
