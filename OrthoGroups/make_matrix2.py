@@ -4,8 +4,10 @@ from Bio import SeqIO
 import pandas as pd
 
 #Use the MIC list as the master list of strains
-MICdf = pd.read_csv('antibiogram_july.csv', index_col=0)
-strains = MICdf.index.values
+with open("strains_dec_7_2013.csv", 'r') as FID:
+	strains = [s.rstrip() for s in FID.readlines()]
+# MICdf = pd.read_csv('antibiogram_july.csv', index_col=0)
+# strains = MICdf.index.values
 fileNames = glob.glob('*.afa')
 
 get_strain_name = lambda seq: seq.id.split('|')[0]
@@ -54,7 +56,7 @@ for fileName in fileNames:
   	porinCheck[groupName] = pd.Series(strainCheck, index=strains)
 
 #Output to a file
-porinCheck.to_csv('BigMatrix.csv', sep='\t')
+porinCheck.to_csv('BigMatrix.tsv', sep='\t')
 
 # #Concatentate into one DF
 # totMatrix = pd.concat(matrixDFs.values(), axis=0)
