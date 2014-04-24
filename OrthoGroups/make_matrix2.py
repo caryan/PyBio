@@ -4,10 +4,14 @@ from Bio import SeqIO
 import pandas as pd
 
 #Use the MIC list as the master list of strains
-with open("strains_dec_7_2013.csv", 'r') as FID:
-	strains = [s.rstrip() for s in FID.readlines()]
+# with open("strains_dec_7_2013.csv", 'r') as FID:
+# 	strains = [s.rstrip() for s in FID.readlines()]
 # MICdf = pd.read_csv('antibiogram_july.csv', index_col=0)
 # strains = MICdf.index.values
+df = pd.read_csv("../meta_clc2.csv", index_col=0)
+strains = ["ARC"+str(x) for x in df.index.values]
+
+
 fileNames = glob.glob('*.afa')
 
 get_strain_name = lambda seq: seq.id.split('|')[0]
@@ -15,8 +19,7 @@ get_strain_name = lambda seq: seq.id.split('|')[0]
 porinCheck = pd.DataFrame(index=strains)
 
 for fileName in fileNames:
-	with open(fileName, 'r') as FID:
-		seqs = SeqIO.to_dict(SeqIO.parse(FID, 'fasta'), key_function=get_strain_name)
+	seqs = SeqIO.to_dict(SeqIO.parse(fileName, 'fasta'), key_function=get_strain_name)
 
 	#Find the reference record first
 	refName = 'PAO1'
@@ -39,47 +42,35 @@ for fileName in fileNames:
 			seqString = seqs[strain].seq.tostring()
 			seqStart = len(seqString) - len(seqString.lstrip('-'))
 			seqStop = len(seqString.rstrip('-'))
+			myString = ''
 			if (seqStart == refSeqStart) and (seqStop == refSeqStop):
-				strainCheck.append('P')
+				myString += 'P; '
 			else:
-				myString = ''
 				if seqStart < refSeqStart:
-					myString += 'E_N{}'.format(refSeqStart-seqStart)
+					myString += 'E_N{}; '.format(refSeqStart-seqStart)
 				elif seqStart > refSeqStart:
-					myString += 'T_N{}'.format(seqStart-refSeqStart)
+					myString += 'T_N{}; '.format(seqStart-refSeqStart)
 				if seqStop > refSeqStop:
-					myString += 'E_C{}'.format(seqStop-refSeqStop)
+					myString += 'E_C{}; '.format(seqStop-refSeqStop)
 				elif seqStop < refSeqStop:
-					myString += 'T_C{}'.format(refSeqStop-seqStop)
-				strainCheck.append(myString)
+					myString += 'T_C{}; '.format(refSeqStop-seqStop)
 
+			#Now check for changes within the sequences too
+			start = max(refSeqStart, seqStart)
+			stop = min(refSeqStop , seqStop)
+			for ct, (refChar, seqChar) in enumerate(zip(refSeq[start:stop], seqString[start:stop])):
+				if refChar == '-' and seqChar != '-':
+					myString += "D-@{}; ".format(ct)
+				elif seqChar == '-' and refChar != '-':
+					myString += "D+@{}; ".format(ct)
+
+			strainCheck.append(myString)
   	porinCheck[groupName] = pd.Series(strainCheck, index=strains)
 
 #Output to a file
 porinCheck.to_csv('BigMatrix.tsv', sep='\t')
 
-# #Concatentate into one DF
-# totMatrix = pd.concat(matrixDFs.values(), axis=0)
 
-# #We now sum along the rows and discard values close to zero or close the total number
-# #in order to only look at interesting ones
-# counts = totMatrix.sum(axis=1)
-
-# #Uncomment to plot the histogram of counts
-# import matplotlib.pyplot as plt
-# plt.hist(counts.values, 100)
-# plt.show()
-
-# cutOff = 10
-# #Use line below for pandas v0.11 and above
-# #interestingMatrix = totMatrix.loc[(counts>cutoff) & (counts < totMatrix.shape[1]-cutOff), :]
-# interestingMatrix = totMatrix[(counts>cutOff) & (counts < totMatrix.shape[1]-cutOff)]
-
-# #Replace the NaN's with 2
-# interestingMatrix.fillna(2, inplace=True)
-
-# #Push the result out to file
-# interestingMatrix.to_csv('BigMatrix.tsv', sep='\t')
 
 	
 
