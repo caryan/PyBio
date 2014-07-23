@@ -518,7 +518,7 @@ def consolidate_tree_info(treeFile, alignedFile, refStrain):
 
 	#Sort the list according to the distance from the refStrain
 	#Sort on group second to keep groups together for Dist Rank algorithm below
-	df.sort(columns=('RefDist', 'Group'), inplace=True)
+	df.sort(columns=['RefDist', 'Group'], inplace=True)
 
 	#Assign a distance rank
 	#Get the uniques in order first
@@ -597,22 +597,3 @@ def og_resistome (OGList):
 		df = df.set_index('StrainName')
 		myDict[group] = df['DistRank']
 	return pd.DataFrame(myDict)
-	
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
