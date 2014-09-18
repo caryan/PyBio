@@ -10,12 +10,20 @@ from bokeh.session import Session
 from bokeh.objects import Plot, HoverTool, PanTool, WheelZoomTool, ResetTool, \
                             Range1d, FactorRange, ColumnDataSource
 from bokeh.glyphs import Rect, Line
-from bokeh.widgets import Select, HBox, VBox
+from bokeh.widgets import Select, HBox, VBox, TableColumn, HandsonTable
 from requests.exceptions import ConnectionError
 
 from collections import OrderedDict
 
 import glob
+
+porins = [_.split("/")[1].split("_")[0] for _ in glob.glob("more_sequences/op*_fasta.fa") ]
+
+MICcols = ["MIC meropenem (ug/ml)", "MIC doripenem (ug/ml)", "MIC ceftazidime (ug/ml)", "MIC piperacillin/tazobactam (ug/ml)",
+            "MIC cefepime (ug/ml)", "MIC aztreonam (ug/ml)"]
+
+sortBy = MICcols[0]
+porin = "oprD"
 
 document = Document()
 session = Session(load_from_config=False)
@@ -23,6 +31,7 @@ session.use_doc('porin_map_server')
 session.load_document(document)
 
 source = ColumnDataSource(data=dict())
+source2 = ColumnDataSource(data=dict())
 
 #Load the meta information
 df = pd.read_csv("mastersheet_porin_pics_sorting_data.txt", sep="\t")
@@ -32,7 +41,7 @@ allowedStrains = ["ARC" + str(_) for _ in df["Isolate"]]
 strains = []
 seqLength = 0
 
-def update_data(porin):
+def update_data():
 
     global strains
     global seqLength
@@ -63,6 +72,20 @@ def update_data(porin):
     recs = goodRecs
     strains = strainsDone
 
+
+    #Sort by the asked for 
+    dfSorted = df.sort(sortBy)
+
+    sortedStrains = ["PAO1"] + ["ARC" + str(_) for _ in dfSorted["Isolate"]]
+    strainIdx = [sortedStrains.index(s) for s in strains]
+
+    sortedTup = sorted(zip(strainIdx, strains, recs), key=lambda t: t[0])
+
+    _  = zip(*sorted(zip(strainIdx, strains, recs), key=lambda t: t[0]))
+
+    strains = list(_[1])
+    recs = list(_[2])
+
     numStrains = len(strains)
     numProtiens = len(recs[0].seq)
 
@@ -92,48 +115,88 @@ def update_data(porin):
                                         "refProtien":np.tile(refSeqList, (pa.shape[0],1)).flatten(order="C"),
                                         "curProtien":[c for r in recs for c in str(r.seq)],
                                         "diffCounts":np.tile(diffCounts, (numStrains, 1)).flatten(order="C"),
-                                        "colour":[colours[_] for _ in pa.flatten()]
+                                        "colour":[colours[_] for _ in pa.flatten()],
+                                        "MIC":np.tile(dfSorted[sortBy].values, (numProtiens,1)).flatten(order="F")
                                         }
+
+    #Load in the A,B,D data
+    posBis = []
+    strainBis = []
+    coloursBis = []
+    for ct,name in enumerate(["class A", "class B", "class D"]):
+        posBis.extend([seqLength + 2.5 + 5*ct for _ in range(numStrains)])
+        strainBis.extend(strains)
+        coloursBis.extend(["#000000" if _ else "#ffffff" for _ in (dfSorted[name].values != '0')])
+
+    source2.data = {
+                    "strain": strainBis,
+                    "pos": posBis,
+                    "colour": coloursBis
+                    }
 
     print("Loaded data for {} into source".format(porin))
 
 
-update_data("oprD")
+update_data()
 
 
 plot = Plot(title="oprD vs. PAO1 Differences", plot_width=1000, plot_height=3000,
-            x_range=Range1d(start=-0.5, end=seqLength),
+            x_range=Range1d(start=-0.5, end=seqLength + 15),
             y_range=FactorRange(factors=strains))
 
 plot.add_glyph(source, Rect(x="pos", y="strain", width=0.95, height=0.95, fill_color="colour", line_color=None))
+
+plot.add_glyph(source2, Rect(x="pos", y="strain", width=5, height=0.95, fill_color="colour", line_color=None))
 
 plot.add_tools(PanTool(), WheelZoomTool(), ResetTool(), HoverTool(tooltips = OrderedDict([
     ("strain", "@strain"),
     ("site", "@pos"),
     ("protien", "@curProtien"),
     ("PAO1", "@refProtien"),
-    ("tot. diff.", "@diffCounts")
+    ("tot. diff.", "@diffCounts"),
+    ("MIC", "@MIC")
     ])
     ) )
 
-def update_plot(porin):
+def update_plot():
     print("Updating plot ranges with new seqLength = {}".format(seqLength))
     plot.title = porin + " vs. PAO1 Differences"
-    plot.x_range.end = seqLength
+    plot.x_range.end = seqLength + 15
     plot.y_range.factors = strains
 
 def on_porin_change(obj, attr, old, new):
     "Load the new porin data"
     print("Updating to porin: " + new)
-    update_data(new)
-    update_plot(new)
+    global porin
+    porin = new
+    update_data()
+    update_plot()
     session.store_document(document)
 
-porinSelect = Select(title="Porin", value="oprD", options=["oprC", "oprD", "oprE", "oprG"])
+porinSelect = Select(title="Porin", value="oprD", options=porins)
 porinSelect.on_change("value", on_porin_change)
 
-controls = VBox(children=[porinSelect])
-layout = HBox(children=[controls, plot])
+
+def on_sort_change(obj, attr, old, new):
+    global sortBy
+    sortBy = new
+    print("Now sorting by: {}".format(new))
+    update_data()
+    update_plot()
+    session.store_document(document)
+
+sortSelect = Select(title="Sort by", value=MICcols[0], options=MICcols)
+sortSelect.on_change("value", on_sort_change)
+
+controls = HBox(children=[porinSelect, sortSelect])
+
+# columns = [TableColumn(field="Strain", header="Strain")]
+# for m in MICcols:
+#     columns.append(TableColumn(field=m, type="numeric", header=m))
+# table = HandsonTable(source=source2, columns=columns)
+# import ipdb; ipdb.set_trace()
+
+layout = VBox(children=[controls, plot])
 document.add(layout)
 
 session.store_document(document)
