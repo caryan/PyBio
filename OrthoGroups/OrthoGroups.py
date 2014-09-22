@@ -501,7 +501,7 @@ def consolidate_tree_info(treeFile, alignedFile, refStrain):
 
 	#Groups are adjacent entries in get_terminals with branch_length=0.0
 	terminals = tree.get_terminals()
-	refClade = terminals[[clade.name.split('|')[0] for clade in terminals].index(refStrain)]
+	refClade = terminals[[clade.name for clade in terminals].index(refStrain)]
 	refDist = {}
 	groups = {}
 	ct = 0
