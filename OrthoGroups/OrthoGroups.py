@@ -569,18 +569,66 @@ def consolidate_tree_info(treeFile, alignedFile, refStrain):
 	return df
 
 
-
-
 def multi_consolidate_tree_info(OGList):
 	"""
 	Wraps multiple calls to consolidate_tree_info for a list of orthogroups.
 	"""
 	for group in OGList:
-		treeFile = group+'.afa.tree'
-		alignedFile = group+'.afa'
+		treeFile = group+'.fa.afa.tree'
+		alignedFile = group+'.fa.afa'
 		refStrain ='PAO1'
 		df = consolidate_tree_info (treeFile, alignedFile, refStrain)
 		df.to_csv (group+'.out')
+
+def consolidate_aa_changes(outFile, drugInfoFile):
+	"""
+	Similar to consolidate_aa_change_info but working from an out file from multi_consolidate_tree_info
+	Lists amino acid changes and their representation in the resistive/sensitive populations.
+	"""
+	changesDF = pd.read_csv(outFile, index_col=0)
+
+	#First loop through and collect all the possible changes
+	allChanges = set()
+	changes = {}
+	for strain, cs in changesDF["Changes"][pd.notnull(changesDF["Changes"])].iteritems():
+		changes[strain] = set()
+		for c in cs.split(";"):
+			allChanges.add(c.lstrip())
+			changes[strain].add(c.lstrip())
+
+	#Parse the drug info file to pull out the sensitive and resistant set for each drug
+	drugInfo = pd.read_csv(drugInfoFile, index_col=0)
+	drugs = ["Meropenem", "Ceftazidime", "Aztreonam", "PIP/TAZ"]
+
+	RandS = {}
+	for drug in drugs:
+		RandS[drug] = {}
+		RandS[drug]["resistant"] = set()
+		RandS[drug]["sensitive"] = set()
+		for strainNum,val in drugInfo[drug+"-binary"].iteritems():
+			if val == "R" or val =="I":
+				RandS[drug]["resistant"].add("ARC"+str(strainNum))
+			elif val == "S":
+				RandS[drug]["sensitive"].add("ARC"+str(strainNum))
+
+	#Now loop back through the changes and see their representation
+	represents = {}
+	numChanges = len(allChanges)
+	for drug in drugs:
+		represents[drug+"_R"] = np.zeros(numChanges, dtype=np.int)
+		represents[drug+"_S"] = np.zeros(numChanges, dtype=np.int)
+
+		for ct,change in enumerate(allChanges):
+			for strain, changeSet in changes.iteritems():
+				if change in changeSet:
+					if strain in RandS[drug]["resistant"]:
+						represents[drug+"_R"][ct] += 1
+					if strain in RandS[drug]["sensitive"]:
+						represents[drug+"_S"][ct] += 1
+
+	df = pd.DataFrame(represents, index=list(allChanges))
+
+	return df
 
 def og_resistome (OGList):
 	"""
