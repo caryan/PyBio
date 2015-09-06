@@ -6,15 +6,24 @@ import glob
 SNPsStrains = defaultdict(list)
 strains = []
 
-fileNames = glob.glob("*.xls")
+# fileNames = glob.glob("*.xls")
+# for fileName in fileNames:
+#
+# 	df = pd.read_excel(fileName, 0)
+#
+# 	strain = fileName.split()[0]
+# 	strains.append(strain)
+# 	for i,s in df.iterrows():
+# 		#We'll store the SNP as a tuple of (RefPos, Type, Length, )
+# 		SNP = (s["Reference Position"], s["Type"], s["Length"], s["Reference"], s["Allele"])
+# 		SNPsStrains[SNP].append(strain)
 
-for fileName in fileNames:
+excelFile = pd.read_excel("AZPAE12416.xlsx", sheetname=None)
 
-	df = pd.read_excel(fileName, 0)
-
-	strain = fileName.split()[0]
+for sheetName, sheet in excelFile.iteritems():
+	strain = sheetName[:10]
 	strains.append(strain)
-	for i,s in df.iterrows():
+	for i,s in sheet.iterrows():
 		#We'll store the SNP as a tuple of (RefPos, Type, Length, )
 		SNP = (s["Reference Position"], s["Type"], s["Length"], s["Reference"], s["Allele"])
 		SNPsStrains[SNP].append(strain)
@@ -74,4 +83,3 @@ SNPPosCounts = dfBis["Ref. Pos."].value_counts()
 
 dfMulti = dfBis[dfBis["Ref. Pos."].map(lambda x: SNPPosCounts[x]) > 1]
 dfMulti.to_csv("SNPMultiples_Changes.tsv", sep='\t', index=False)
-
